@@ -1,4 +1,4 @@
-use anyhow::{Error, Result, anyhow};
+use anyhow::{Result, anyhow};
 use std::{fs, str::FromStr};
 
 fn main() {
@@ -73,8 +73,6 @@ impl Safe {
         let remainder = new_position % 100;
         if remainder == 0 {
             self.zero_count += 1;
-            // self.position = remainder;
-            // self.cross_zero_count += if crosses > 0 { crosses } else { 1 };
         }
 
         if new_position < 0 {
