@@ -32,12 +32,10 @@ fn joltage(bank: &str, num: usize) -> usize {
         start += max_found.0 + 1; // the index of max_found is relative to slice, not the line, so we must +=
         str_builder.push(max_found.1);
     }
-    // dbg!(line);
-    // dbg!(
+
     str_builder
         .parse::<usize>()
         .expect("is a valid positive number")
-    // )
 }
 
 #[cfg(test)]
