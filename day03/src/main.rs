@@ -5,8 +5,8 @@ fn main() {
     let result = part1(&input).unwrap();
     println!("Part 1: {}", result);
 
-    // let result = part2(&input).unwrap();
-    // println!("Part 2: {}", result);
+    let result = part2(&input).unwrap();
+    println!("Part 2: {}", result);
 }
 
 fn part1(input: &str) -> anyhow::Result<usize> {
@@ -34,7 +34,30 @@ fn part1(input: &str) -> anyhow::Result<usize> {
 }
 
 fn part2(input: &str) -> anyhow::Result<usize> {
-    unimplemented!()
+    let result = input
+        .lines()
+        .map(|line| {
+            let mut str_builder = String::with_capacity(12);
+            let mut start = 0;
+            for i in (0..12).rev() {
+                let end = line.len() - i;
+                let max_found = line[start..end]
+                    .char_indices()
+                    .rev() //max_by_key: If several elements are equally maximum, the last element is returned.
+                    .max_by_key(|&(_idx, num)| num)
+                    .expect("iterator never empty");
+                start += max_found.0 + 1; // the index of max_found is relative to slice, not the line, so we must +=
+                str_builder.push(max_found.1);
+            }
+            // dbg!(line);
+            // dbg!(
+            str_builder
+                .parse::<usize>()
+                .expect("is a valid positive number")
+            // )
+        })
+        .sum();
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -75,5 +98,16 @@ mod tests {
 ";
         let result = part1(input);
         assert_eq!(result.unwrap(), 99);
+    }
+
+    #[test]
+    fn test_part2() {
+        let input = "987654321111111
+811111111111119
+234234234234278
+818181911112111
+";
+        let result = part2(input);
+        assert_eq!(result.unwrap(), 3121910778619);
     }
 }
