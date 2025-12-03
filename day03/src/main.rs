@@ -10,54 +10,34 @@ fn main() {
 }
 
 fn part1(input: &str) -> anyhow::Result<usize> {
-    let result = input
-        .lines()
-        .map(|line| {
-            let first = line[0..line.len() - 1] //can't be the last number
-                .char_indices()
-                .rev() //max_by_key: If several elements are equally maximum, the last element is returned.
-                .max_by_key(|&(_idx, num)| num)
-                .expect("iterator never empty");
-            let second = line[first.0 + 1..line.len()]
-                .char_indices()
-                .max_by_key(|&(_idx, num)| num)
-                .expect("iterator never empty");
-            // dbg!(line);
-            // dbg!(
-            format!("{}{}", first.1, second.1)
-                .parse::<usize>()
-                .expect("is a valid positive number")
-            // )
-        })
-        .sum();
+    let result = input.lines().map(|line| joltage(line, 2)).sum();
     Ok(result)
 }
 
 fn part2(input: &str) -> anyhow::Result<usize> {
-    let result = input
-        .lines()
-        .map(|line| {
-            let mut str_builder = String::with_capacity(12);
-            let mut start = 0;
-            for i in (0..12).rev() {
-                let end = line.len() - i;
-                let max_found = line[start..end]
-                    .char_indices()
-                    .rev() //max_by_key: If several elements are equally maximum, the last element is returned.
-                    .max_by_key(|&(_idx, num)| num)
-                    .expect("iterator never empty");
-                start += max_found.0 + 1; // the index of max_found is relative to slice, not the line, so we must +=
-                str_builder.push(max_found.1);
-            }
-            // dbg!(line);
-            // dbg!(
-            str_builder
-                .parse::<usize>()
-                .expect("is a valid positive number")
-            // )
-        })
-        .sum();
+    let result = input.lines().map(|line| joltage(line, 12)).sum();
     Ok(result)
+}
+
+fn joltage(bank: &str, num: usize) -> usize {
+    let mut str_builder = String::with_capacity(12);
+    let mut start = 0;
+    for i in (0..num).rev() {
+        let end = bank.len() - i;
+        let max_found = bank[start..end]
+            .char_indices()
+            .rev() //max_by_key: If several elements are equally maximum, the last element is returned.
+            .max_by_key(|&(_idx, num)| num)
+            .expect("iterator never empty");
+        start += max_found.0 + 1; // the index of max_found is relative to slice, not the line, so we must +=
+        str_builder.push(max_found.1);
+    }
+    // dbg!(line);
+    // dbg!(
+    str_builder
+        .parse::<usize>()
+        .expect("is a valid positive number")
+    // )
 }
 
 #[cfg(test)]
