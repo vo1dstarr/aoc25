@@ -20,7 +20,7 @@ fn part2(input: &str) -> anyhow::Result<usize> {
 }
 
 fn joltage(bank: &str, num: usize) -> usize {
-    let mut str_builder = String::with_capacity(12);
+    let mut str_builder = String::with_capacity(num);
     let mut start = 0;
     for i in (0..num).rev() {
         let end = bank.len() - i;
