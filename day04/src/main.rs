@@ -29,49 +29,7 @@ fn make_matrix(input: &str) -> Matrix {
 }
 
 fn num_access(matrix: &Matrix) -> usize {
-    fn neg(i: usize, _: usize) -> Option<usize> {
-        i.checked_sub(1)
-    }
-    fn ident(i: usize, _: usize) -> Option<usize> {
-        Some(i)
-    }
-    fn add(i: usize, max: usize) -> Option<usize> {
-        let new = i + 1;
-        if new < max {
-            return Some(new);
-        }
-        None
-    }
-    let operations = [neg, ident, add];
-
-    let mut result = 0;
-    for (i, row) in matrix.iter().enumerate() {
-        for (j, item) in row.iter().enumerate() {
-            if *item == b'.' {
-                continue; //not paper
-            }
-            let i_max = matrix.len();
-            let j_max = row.len();
-
-            let mut addjacent_count = 0;
-            for opp_i in operations.iter() {
-                for opp_j in operations.iter() {
-                    opp_i(i, i_max).map(|new_i| {
-                        opp_j(j, j_max).map(|new_j| {
-                            if matrix[new_i][new_j] == b'@' {
-                                addjacent_count += 1;
-                            }
-                        })
-                    });
-                }
-            }
-            if addjacent_count < 5 {
-                //5 because include self
-                result += 1;
-            }
-        }
-    }
-    result
+    accessable_items(matrix).len()
 }
 
 fn part2(input: &str) -> anyhow::Result<usize> {
@@ -80,6 +38,19 @@ fn part2(input: &str) -> anyhow::Result<usize> {
 }
 
 fn rec_num_access(matrix: &mut Matrix, acc: usize) -> usize {
+    let to_be_removed = accessable_items(matrix);
+
+    for (i, j) in &to_be_removed {
+        matrix[*i][*j] = b'.';
+    }
+
+    if to_be_removed.is_empty() {
+        return acc;
+    }
+    rec_num_access(matrix, acc + to_be_removed.len())
+}
+
+fn accessable_items(matrix: &Matrix) -> Vec<(usize, usize)> {
     fn neg(i: usize, _: usize) -> Option<usize> {
         i.checked_sub(1)
     }
@@ -96,7 +67,6 @@ fn rec_num_access(matrix: &mut Matrix, acc: usize) -> usize {
     let operations = [neg, ident, add];
 
     let mut to_be_removed = Vec::new();
-    let mut result = 0;
     for (i, row) in matrix.iter().enumerate() {
         for (j, item) in row.iter().enumerate() {
             if *item == b'.' {
@@ -119,20 +89,11 @@ fn rec_num_access(matrix: &mut Matrix, acc: usize) -> usize {
             }
             if addjacent_count < 5 {
                 //5 because include self
-                result += 1;
                 to_be_removed.push((i, j));
             }
         }
     }
-
-    for (i, j) in to_be_removed {
-        matrix[i][j] = b'.';
-    }
-
-    if result == 0 {
-        return acc;
-    }
-    rec_num_access(matrix, acc + result)
+    to_be_removed
 }
 
 #[cfg(test)]
