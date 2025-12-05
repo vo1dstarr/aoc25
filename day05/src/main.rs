@@ -10,6 +10,17 @@ fn main() {
 }
 
 fn part1(input: &str) -> anyhow::Result<usize> {
+    let (available, ranges_vec) = parse_ranges_and_available(input);
+    Ok(available
+        .lines()
+        .filter_map(|s| {
+            let n = s.parse::<usize>().unwrap();
+            id_in_fresh_ranges(&ranges_vec, n).then_some(n)
+        })
+        .count())
+}
+
+fn parse_ranges_and_available(input: &str) -> (&str, Vec<(usize, usize)>) {
     let mut part_iter = input.split("\n\n");
     let ranges = part_iter.next().unwrap();
     let available = part_iter.next().unwrap();
@@ -20,13 +31,7 @@ fn part1(input: &str) -> anyhow::Result<usize> {
         let end = range_iter.next().unwrap().parse::<usize>().unwrap();
         ranges_vec.push((start, end));
     }
-    Ok(available
-        .lines()
-        .filter_map(|s| {
-            let n = s.parse::<usize>().unwrap();
-            id_in_fresh_ranges(&ranges_vec, n).then_some(n)
-        })
-        .count())
+    (available, ranges_vec)
 }
 
 fn id_in_fresh_ranges(ranges: &[(usize, usize)], item: usize) -> bool {
@@ -39,15 +44,7 @@ fn id_in_fresh_ranges(ranges: &[(usize, usize)], item: usize) -> bool {
 }
 
 fn part2(input: &str) -> anyhow::Result<usize> {
-    let mut part_iter = input.split("\n\n");
-    let ranges = part_iter.next().unwrap();
-    let mut ranges_vec = Vec::new();
-    for line in ranges.lines() {
-        let mut range_iter = line.split('-');
-        let start = range_iter.next().unwrap().parse::<usize>().unwrap();
-        let end = range_iter.next().unwrap().parse::<usize>().unwrap();
-        ranges_vec.push((start, end));
-    }
+    let (_, mut ranges_vec) = parse_ranges_and_available(input);
     prune_ranges(&mut ranges_vec);
     Ok(ranges_vec.iter().map(|(start, end)| end - start + 1).sum())
 }
