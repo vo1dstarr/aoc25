@@ -15,10 +15,29 @@ fn main() {
 }
 
 fn part1(input: &str, iterations: usize) -> anyhow::Result<usize> {
-    let points = input
+    let points = parse_points(input);
+    let distances = generate_distances(&points);
+    let mut circuits: Vec<RefCell<HashSet<usize>>> = Vec::new();
+    for i in 0..iterations {
+        let (p1, p2, _) = distances[i];
+        connect_points(&mut circuits, p1, p2);
+    }
+    circuits.sort_unstable_by_key(|set| set.borrow().len());
+    Ok(circuits
+        .iter()
+        .rev()
+        .take(3)
+        .fold(1, |acc, set| acc * set.borrow().len().max(1)))
+}
+
+fn parse_points(input: &str) -> Vec<Point> {
+    input
         .lines()
         .map(|line| line.parse::<Point>().unwrap())
-        .collect::<Vec<_>>();
+        .collect::<Vec<_>>()
+}
+
+fn generate_distances(points: &[Point]) -> Vec<(usize, usize, f64)> {
     let mut distances = Vec::new();
     for (idx1, p1) in points.iter().enumerate() {
         for (idx2, p2) in points.iter().enumerate().skip(idx1 + 1) {
@@ -27,49 +46,43 @@ fn part1(input: &str, iterations: usize) -> anyhow::Result<usize> {
         }
     }
     distances.sort_unstable_by(|lhs, rhs| lhs.2.total_cmp(&rhs.2));
-    let mut circuits: Vec<RefCell<HashSet<usize>>> = Vec::new();
-    for i in 0..iterations {
-        let (p1, p2, _) = distances[i];
-        let mut p1_set = None;
-        let mut p2_set = None;
-        for (cidx, set) in circuits.iter().enumerate() {
-            if set.borrow().contains(&p1) {
-                p1_set = Some(cidx);
-            }
-            if set.borrow().contains(&p2) {
-                p2_set = Some(cidx);
-            }
-            if p1_set.is_some() && p2_set.is_some() {
-                break;
-            }
+    distances
+}
+
+fn connect_points(circuits: &mut Vec<RefCell<HashSet<usize>>>, p1: usize, p2: usize) {
+    let mut p1_set = None;
+    let mut p2_set = None;
+    for (cidx, set) in circuits.iter().enumerate() {
+        if set.borrow().contains(&p1) {
+            p1_set = Some(cidx);
         }
-        match (p1_set, p2_set) {
-            (None, None) => {
-                let set = HashSet::from([p1, p2]);
-                circuits.push(RefCell::new(set));
-            }
-            (None, Some(cidx)) => {
-                circuits[cidx].borrow_mut().insert(p1);
-            }
-            (Some(cidx), None) => {
-                circuits[cidx].borrow_mut().insert(p2);
-            }
-            (Some(idx1), Some(idx2)) => {
-                if idx1 != idx2 {
-                    circuits[idx1]
-                        .borrow_mut()
-                        .extend(circuits[idx2].borrow_mut().drain());
-                }
+        if set.borrow().contains(&p2) {
+            p2_set = Some(cidx);
+        }
+        if p1_set.is_some() && p2_set.is_some() {
+            break;
+        }
+    }
+    match (p1_set, p2_set) {
+        (None, None) => {
+            let set = HashSet::from([p1, p2]);
+            circuits.push(RefCell::new(set));
+        }
+        (None, Some(cidx)) => {
+            circuits[cidx].borrow_mut().insert(p1);
+        }
+        (Some(cidx), None) => {
+            circuits[cidx].borrow_mut().insert(p2);
+        }
+        (Some(idx1), Some(idx2)) => {
+            if idx1 != idx2 {
+                circuits[idx1]
+                    .borrow_mut()
+                    .extend(circuits[idx2].borrow_mut().drain());
+                circuits.swap_remove(idx2);
             }
         }
     }
-    circuits.sort_unstable_by_key(|set| set.borrow().len());
-    // dbg!(&circuits);
-    Ok(circuits
-        .iter()
-        .rev()
-        .take(3)
-        .fold(1, |acc, set| acc * set.borrow().len().max(1)))
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
@@ -111,53 +124,11 @@ fn distance(p1: &Point, p2: &Point) -> f64 {
 
 fn part2(input: &str) -> anyhow::Result<usize> {
     let mut answer = None;
-    let points = input
-        .lines()
-        .map(|line| line.parse::<Point>().unwrap())
-        .collect::<Vec<_>>();
-    let mut distances = Vec::new();
-    for (idx1, p1) in points.iter().enumerate() {
-        for (idx2, p2) in points.iter().enumerate().skip(idx1 + 1) {
-            let distance = distance(p1, p2);
-            distances.push((idx1, idx2, distance));
-        }
-    }
-    distances.sort_unstable_by(|lhs, rhs| lhs.2.total_cmp(&rhs.2));
+    let points = parse_points(input);
+    let distances = generate_distances(&points);
     let mut circuits: Vec<RefCell<HashSet<usize>>> = Vec::new();
     for (p1, p2, _) in distances {
-        let mut p1_set = None;
-        let mut p2_set = None;
-        for (cidx, set) in circuits.iter().enumerate() {
-            if set.borrow().contains(&p1) {
-                p1_set = Some(cidx);
-            }
-            if set.borrow().contains(&p2) {
-                p2_set = Some(cidx);
-            }
-            if p1_set.is_some() && p2_set.is_some() {
-                break;
-            }
-        }
-        match (p1_set, p2_set) {
-            (None, None) => {
-                let set = HashSet::from([p1, p2]);
-                circuits.push(RefCell::new(set));
-            }
-            (None, Some(cidx)) => {
-                circuits[cidx].borrow_mut().insert(p1);
-            }
-            (Some(cidx), None) => {
-                circuits[cidx].borrow_mut().insert(p2);
-            }
-            (Some(idx1), Some(idx2)) => {
-                if idx1 != idx2 {
-                    circuits[idx1]
-                        .borrow_mut()
-                        .extend(circuits[idx2].borrow_mut().drain());
-                    circuits.swap_remove(idx2);
-                }
-            }
-        }
+        connect_points(&mut circuits, p1, p2);
         if circuits.len() == 1 {
             let mut contains_all = true;
             for (pidx, _) in points.iter().enumerate() {
