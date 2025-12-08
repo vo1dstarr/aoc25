@@ -10,8 +10,8 @@ fn main() {
     let result = part1(&input, 1000).unwrap();
     println!("Part 1: {}", result);
 
-    //     let result = part2(&input).unwrap();
-    //     println!("Part 2: {}", result);
+    let result = part2(&input).unwrap();
+    println!("Part 2: {}", result);
 }
 
 fn part1(input: &str, iterations: usize) -> anyhow::Result<usize> {
@@ -22,9 +22,6 @@ fn part1(input: &str, iterations: usize) -> anyhow::Result<usize> {
     let mut distances = Vec::new();
     for (idx1, p1) in points.iter().enumerate() {
         for (idx2, p2) in points.iter().enumerate().skip(idx1 + 1) {
-            // if idx1 == idx2 {
-            //     continue;
-            // }
             let distance = distance(p1, p2);
             distances.push((idx1, idx2, distance));
         }
@@ -113,7 +110,69 @@ fn distance(p1: &Point, p2: &Point) -> f64 {
 }
 
 fn part2(input: &str) -> anyhow::Result<usize> {
-    unimplemented!()
+    let mut answer = None;
+    let points = input
+        .lines()
+        .map(|line| line.parse::<Point>().unwrap())
+        .collect::<Vec<_>>();
+    let mut distances = Vec::new();
+    for (idx1, p1) in points.iter().enumerate() {
+        for (idx2, p2) in points.iter().enumerate().skip(idx1 + 1) {
+            let distance = distance(p1, p2);
+            distances.push((idx1, idx2, distance));
+        }
+    }
+    distances.sort_unstable_by(|lhs, rhs| lhs.2.total_cmp(&rhs.2));
+    let mut circuits: Vec<RefCell<HashSet<usize>>> = Vec::new();
+    for (p1, p2, _) in distances {
+        let mut p1_set = None;
+        let mut p2_set = None;
+        for (cidx, set) in circuits.iter().enumerate() {
+            if set.borrow().contains(&p1) {
+                p1_set = Some(cidx);
+            }
+            if set.borrow().contains(&p2) {
+                p2_set = Some(cidx);
+            }
+            if p1_set.is_some() && p2_set.is_some() {
+                break;
+            }
+        }
+        match (p1_set, p2_set) {
+            (None, None) => {
+                let set = HashSet::from([p1, p2]);
+                circuits.push(RefCell::new(set));
+            }
+            (None, Some(cidx)) => {
+                circuits[cidx].borrow_mut().insert(p1);
+            }
+            (Some(cidx), None) => {
+                circuits[cidx].borrow_mut().insert(p2);
+            }
+            (Some(idx1), Some(idx2)) => {
+                if idx1 != idx2 {
+                    circuits[idx1]
+                        .borrow_mut()
+                        .extend(circuits[idx2].borrow_mut().drain());
+                    circuits.swap_remove(idx2);
+                }
+            }
+        }
+        if circuits.len() == 1 {
+            let mut contains_all = true;
+            for (pidx, _) in points.iter().enumerate() {
+                if !circuits[0].borrow().contains(&pidx) {
+                    contains_all = false;
+                    break;
+                }
+            }
+            if contains_all {
+                answer = Some(points[p1].x as usize * points[p2].x as usize);
+                break;
+            }
+        }
+    }
+    answer.ok_or_else(|| anyhow!("Circuits never connected"))
 }
 
 #[cfg(test)]
@@ -172,6 +231,6 @@ mod tests {
 425,690,689
 ";
         let result = part2(input);
-        assert_eq!(result.unwrap(), panic!("unknown answer"));
+        assert_eq!(result.unwrap(), 25272);
     }
 }
